@@ -32,11 +32,11 @@ type GcpPubSubEventSourceExecutor struct {
 // pubSubConfig contains configuration to subscribe to GCP PubSub topic
 type pubSubConfig struct {
 	// ProjectID is the unique identifier for your project on GCP
-	ProjectID string `json:"projectID"`
+	ProjectID string `yaml:"projectID"`
 	// Topic on which a subscription will be created
-	Topic string `json:"topic"`
+	Topic string `yaml:"topic"`
 	// CredentialsFile is the file that contains credentials to authenticate for GCP
-	CredentialsFile string `json:"credentialsFile"`
+	CredentialsFile string `yaml:"credentialsFile"`
 }
 
 func parseEventSource(es string) (interface{}, error) {

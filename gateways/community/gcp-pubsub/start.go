@@ -20,6 +20,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/bramvdbogaerde/go-randomstring"
+
 	"cloud.google.com/go/pubsub"
 	"github.com/argoproj/argo-events/gateways"
 	"google.golang.org/api/option"
@@ -61,14 +63,26 @@ func (ese *GcpPubSubEventSourceExecutor) listenEvents(ctx context.Context, sc *p
 	// Create a new topic with the given name.
 	logger := ese.Log.With().Str("event-source", eventSource.Name).Str("topic", sc.Topic).Logger()
 	logger.Info().Msg("creating GCP PubSub topic")
-	topic, err := ese.client.CreateTopic(ctx, sc.Topic)
+
+	//check if a topic exists, if not create it.
+	topic := ese.client.Topic(sc.Topic)
+	ok, err := topic.Exists(ctx)
 	if err != nil {
 		errorCh <- err
 		return
 	}
+	if !ok {
+		topic, err = ese.client.CreateTopic(ctx, sc.Topic)
+		if err != nil {
+			errorCh <- err
+			return
+		}
+	}
 
-	logger.Info().Msg("subscribing to GCP PubSub topic")
-	sub, err := ese.client.CreateSubscription(ctx, eventSource.Id,
+	//add random name for subscribtion, to not clash with possible existing one.
+	subName := sc.Topic + "-" + randomstring.New()
+	logger.Info().Str("sub-name", subName).Msg("subscribing to GCP PubSub topic")
+	sub, err := ese.client.CreateSubscription(ctx, subName,
 		pubsub.SubscriptionConfig{Topic: topic})
 	if err != nil {
 		errorCh <- err
