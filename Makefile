@@ -16,7 +16,7 @@ override LDFLAGS += \
 
 #  docker image publishing options
 DOCKER_PUSH?=true
-IMAGE_NAMESPACE?=argoproj
+IMAGE_NAMESPACE?=gcr.io/onec-co
 IMAGE_TAG?=v0.8
 
 ifeq (${DOCKER_PUSH},true)
