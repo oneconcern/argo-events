@@ -1,4 +1,4 @@
-PACKAGE=github.com/argoproj/argo-events
+PACKAGE=github.com/slobo1c/argo-events-1c
 CURRENT_DIR=$(shell pwd)
 DIST_DIR=${CURRENT_DIR}/dist
 
