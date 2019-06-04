@@ -1,4 +1,4 @@
-PACKAGE=github.com/argoproj/argo-events
+PACKAGE=github.com/oneconcern/argo-events
 CURRENT_DIR=$(shell pwd)
 DIST_DIR=${CURRENT_DIR}/dist
 
@@ -16,7 +16,7 @@ override LDFLAGS += \
 
 #  docker image publishing options
 DOCKER_PUSH?=true
-IMAGE_NAMESPACE?=argoproj
+IMAGE_NAMESPACE?=gcr.io/onec-co
 IMAGE_TAG?=latest
 
 ifeq (${DOCKER_PUSH},true)

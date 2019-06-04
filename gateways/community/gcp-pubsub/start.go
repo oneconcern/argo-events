@@ -17,6 +17,11 @@ limitations under the License.
 package pubsub
 
 import (
+	"context"
+	"fmt"
+
+	"github.com/bramvdbogaerde/go-randomstring"
+
 	"cloud.google.com/go/pubsub"
 	"context"
 	"github.com/argoproj/argo-events/common"
@@ -51,23 +56,28 @@ func (ese *GcpPubSubEventSourceExecutor) StartEventSource(eventSource *gateways.
 
 func (ese *GcpPubSubEventSourceExecutor) listenEvents(ctx context.Context, sc *pubSubEventSource, eventSource *gateways.EventSource, dataCh chan []byte, errorCh chan error, doneCh chan struct{}) {
 	// Create a new topic with the given name.
-	logger := ese.Log.WithField(common.LabelEventSource, eventSource.Name).WithField("topic", sc.Topic)
+	logger := ese.Log.With().Str("event-source", eventSource.Name).Str("topic", sc.Topic).Logger()
+	logger.Info().Msg("creating GCP PubSub topic")
 
-	client, err := pubsub.NewClient(ctx, sc.ProjectID, option.WithCredentialsFile(sc.CredentialsFile))
+	//check if a topic exists, if not create it.
+	topic := ese.client.Topic(sc.Topic)
+	ok, err := topic.Exists(ctx)
 	if err != nil {
 		errorCh <- err
 		return
 	}
-
-	logger.Info("creating GCP PubSub topic")
-	topic, err := client.CreateTopic(ctx, sc.Topic)
-	if err != nil {
-		errorCh <- err
-		return
+	if !ok {
+		topic, err = ese.client.CreateTopic(ctx, sc.Topic)
+		if err != nil {
+			errorCh <- err
+			return
+		}
 	}
 
-	logger.Info("subscribing to GCP PubSub topic")
-	sub, err := client.CreateSubscription(ctx, eventSource.Id,
+	//add random name for subscribtion, to not clash with possible existing one.
+	subName := sc.Topic + "-" + randomstring.New()
+	logger.Info().Str("sub-name", subName).Msg("subscribing to GCP PubSub topic")
+	sub, err := ese.client.CreateSubscription(ctx, subName,
 		pubsub.SubscriptionConfig{Topic: topic})
 	if err != nil {
 		errorCh <- err
