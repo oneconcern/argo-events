@@ -77,7 +77,7 @@ func (ese *GcpPubSubEventSourceExecutor) listenEvents(ctx context.Context, sc *p
 		return
 	}
 
-	//add random name for subscribtion, to not clash with possible existing one.
+	//add random name for subscription to not clash with possible existing one.
 	subName := sc.Topic + "-" + randomstring.New()
 	logger.Info("subscribing to GCP PubSub topic with subscription: " + subName)
 	sub, err := client.CreateSubscription(ctx, subName,
