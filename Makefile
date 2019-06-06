@@ -1,3 +1,48 @@
+ifndef GITHUB_USER
+$(error "Must set GITHUB_USER") # this is a Make error
+endif
+ifndef GITHUB_TOKEN
+$(error "Must set GITHUB_TOKEN") # this is a Make error
+endif
+
+SHELL:=/bin/bash
+
+# COLORS
+GREEN  := $(shell tput -Txterm setaf 2)
+YELLOW := $(shell tput -Txterm setaf 3)
+WHITE  := $(shell tput -Txterm setaf 7)
+RESET  := $(shell tput -Txterm sgr0)
+
+GO := $(shell command -v richgo 2> /dev/null)
+ifndef GO
+		GO := "go"
+endif
+
+TARGET_MAX_CHAR_NUM=25
+## Show help
+help:
+	@echo ''
+	@echo 'Usage:'
+	@echo '  ${YELLOW}make${RESET} ${GREEN}<target>${RESET}'
+	@echo ''
+	@echo 'Targets:'
+	@awk '/^[a-zA-Z\-\_0-9]+:/ { \
+		helpMessage = match(lastLine, /^## (.*)/); \
+		if (helpMessage) { \
+			helpCommand = substr($$1, 0, index($$1, ":")-1); \
+			helpMessage = substr(lastLine, RSTART + 3, RLENGTH); \
+			printf "  ${YELLOW}%-$(TARGET_MAX_CHAR_NUM)s${RESET} ${GREEN}%s${RESET}\n", helpCommand, helpMessage; \
+		} \
+	} \
+	{ lastLine = $$0 }' $(MAKEFILE_LIST)
+
+GITDIRTY=$(shell git diff --quiet || echo 'dirty')
+TAG_VERSION=$(shell git describe --tags)
+# ----------------------
+
+GIT_BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
+GOPATH ?= $(shell go env GOPATH)
+
 PACKAGE=github.com/oneconcern/argo-events
 CURRENT_DIR=$(shell pwd)
 DIST_DIR=${CURRENT_DIR}/dist
@@ -32,6 +77,28 @@ endif
 ifdef IMAGE_NAMESPACE
 IMAGE_PREFIX=${IMAGE_NAMESPACE}/
 endif
+
+.PHONY: build-pubsub-onec
+## Build gcp-pubsub-gateway image
+build-pubsub-onec:
+	@echo '${GREEN}building${RESET} ${YELLOW}gcp-pubsub-gateway${RESET} image'
+	@docker build \
+		--pull \
+		--build-arg github_user=$(GITHUB_USER) \
+		--build-arg github_token=$(GITHUB_TOKEN) \
+		--build-arg version=$(TAG_VERSION) \
+		--build-arg commit=$(GIT_COMMIT) \
+		--build-arg dirty=$(GITDIRTY) \
+		-t $(IMAGE_PREFIX)gcp-pubsub-gateway:$(TAG_VERSION) \
+		-t $(IMAGE_PREFIX)gcp-pubsub-gateway:$(subst /,_,$(GIT_BRANCH)) \
+		-f ./gateways/community/gcp-pubsub/Dockerfile .
+
+.PHONY: push-pubsub-onec
+## Push pubsub-image-onec image
+push-pubsub-onec:
+	@echo '${GREEN}pushing${RESET} ${YELLOW}gcp-pubsub-gateway${RESET} image'
+	@docker push $(IMAGE_PREFIX)gcp-pubsub-gateway:$(TAG_VERSION)
+	@docker push $(IMAGE_PREFIX)gcp-pubsub-gateway:$(subst /,_,$(GIT_BRANCH))
 
 # Build the project images
 .DELETE_ON_ERROR:
