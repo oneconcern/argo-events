@@ -21,7 +21,7 @@ import (
 	"encoding/base64"
 	"errors"
 
-	"github.com/bramvdbogaerde/go-randomstring"
+	"github.com/segmentio/ksuid"
 	"google.golang.org/api/option"
 
 	"cloud.google.com/go/pubsub"
@@ -78,7 +78,7 @@ func (ese *GcpPubSubEventSourceExecutor) listenEvents(ctx context.Context, sc *p
 	}
 
 	//add random name for subscription to not clash with possible existing one.
-	subName := sc.Topic + "-" + randomstring.New()
+	subName := sc.Topic + "-" + ksuid.New().String()
 	logger.Info("subscribing to GCP PubSub topic with subscription: " + subName)
 	sub, err := client.CreateSubscription(ctx, subName,
 		pubsub.SubscriptionConfig{Topic: topic})

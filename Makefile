@@ -36,12 +36,9 @@ help:
 	} \
 	{ lastLine = $$0 }' $(MAKEFILE_LIST)
 
-GITDIRTY=$(shell git diff --quiet || echo 'dirty')
 TAG_VERSION=$(shell git describe --tags)
-# ----------------------
-
 GIT_BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
-GOPATH ?= $(shell go env GOPATH)
+# ----------------------
 
 PACKAGE=github.com/oneconcern/argo-events
 CURRENT_DIR=$(shell pwd)
@@ -84,11 +81,6 @@ build-pubsub-onec:
 	@echo '${GREEN}building${RESET} ${YELLOW}gcp-pubsub-gateway${RESET} image'
 	@docker build \
 		--pull \
-		--build-arg github_user=$(GITHUB_USER) \
-		--build-arg github_token=$(GITHUB_TOKEN) \
-		--build-arg version=$(TAG_VERSION) \
-		--build-arg commit=$(GIT_COMMIT) \
-		--build-arg dirty=$(GITDIRTY) \
 		-t $(IMAGE_PREFIX)gcp-pubsub-gateway:$(TAG_VERSION) \
 		-t $(IMAGE_PREFIX)gcp-pubsub-gateway:$(subst /,_,$(GIT_BRANCH)) \
 		-f ./gateways/community/gcp-pubsub/Dockerfile .
