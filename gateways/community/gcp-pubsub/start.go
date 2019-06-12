@@ -17,11 +17,16 @@ limitations under the License.
 package pubsub
 
 import (
-	"cloud.google.com/go/pubsub"
 	"context"
+	"encoding/base64"
+	"errors"
+
+	"github.com/segmentio/ksuid"
+	"google.golang.org/api/option"
+
+	"cloud.google.com/go/pubsub"
 	"github.com/argoproj/argo-events/common"
 	"github.com/argoproj/argo-events/gateways"
-	"google.golang.org/api/option"
 )
 
 // StartEventSource starts the GCP PubSub Gateway
@@ -59,15 +64,23 @@ func (ese *GcpPubSubEventSourceExecutor) listenEvents(ctx context.Context, sc *p
 		return
 	}
 
-	logger.Info("creating GCP PubSub topic")
-	topic, err := client.CreateTopic(ctx, sc.Topic)
+	//check if a topic exists
+	topic := client.Topic(sc.Topic)
+	ok, err := topic.Exists(ctx)
 	if err != nil {
 		errorCh <- err
 		return
 	}
+	if !ok {
+		err := errors.New("topic does not exist: " + sc.Topic)
+		errorCh <- err
+		return
+	}
 
-	logger.Info("subscribing to GCP PubSub topic")
-	sub, err := client.CreateSubscription(ctx, eventSource.Id,
+	//add random name for subscription to not clash with possible existing one.
+	subName := sc.Topic + "-" + ksuid.New().String()
+	logger.Info("subscribing to GCP PubSub topic with subscription: " + subName)
+	sub, err := client.CreateSubscription(ctx, subName,
 		pubsub.SubscriptionConfig{Topic: topic})
 	if err != nil {
 		errorCh <- err
@@ -76,7 +89,8 @@ func (ese *GcpPubSubEventSourceExecutor) listenEvents(ctx context.Context, sc *p
 
 	err = sub.Receive(ctx, func(msgCtx context.Context, m *pubsub.Message) {
 		logger.Info("received GCP PubSub Message from topic")
-		dataCh <- m.Data
+		encodedData := []byte(base64.StdEncoding.EncodeToString(m.Data))
+		dataCh <- encodedData
 		m.Ack()
 	})
 	if err != nil {
@@ -89,10 +103,6 @@ func (ese *GcpPubSubEventSourceExecutor) listenEvents(ctx context.Context, sc *p
 	// after this point, panic on errors
 	logger.Info("deleting GCP PubSub subscription")
 	if err = sub.Delete(context.Background()); err != nil {
-		panic(err)
-	}
-	logger.Info("deleting GCP PubSub topic")
-	if err = topic.Delete(context.Background()); err != nil {
 		panic(err)
 	}
 	logger.Info("closing GCP PubSub client")
