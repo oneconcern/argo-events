@@ -1,10 +1,3 @@
-ifndef GITHUB_USER
-$(error "Must set GITHUB_USER") # this is a Make error
-endif
-ifndef GITHUB_TOKEN
-$(error "Must set GITHUB_TOKEN") # this is a Make error
-endif
-
 SHELL:=/bin/bash
 
 # COLORS
