@@ -52,7 +52,7 @@ override LDFLAGS += \
 #  docker image publishing options
 DOCKER_PUSH?=true
 IMAGE_NAMESPACE?=gcr.io/onec-co
-IMAGE_TAG?=latest
+IMAGE_TAG?=v0.11
 
 ifeq (${DOCKER_PUSH},true)
 ifndef IMAGE_NAMESPACE

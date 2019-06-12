@@ -20,12 +20,13 @@ import (
 	"context"
 	"fmt"
 	"encoding/base64"
-	"google.golang.org/api/option"
 	"fmt"
 
 	"cloud.google.com/go/pubsub"
 	"github.com/argoproj/argo-events/common"
 	"github.com/argoproj/argo-events/gateways"
+	"github.com/segmentio/ksuid"
+	"google.golang.org/api/option"
 )
 
 // StartEventSource starts the GCP PubSub Gateway
@@ -86,8 +87,8 @@ func (ese *GcpPubSubEventSourceExecutor) listenEvents(ctx context.Context, sc *p
 		}
 	}
 
-	logger.Info("Subscribing to GCP PubSub topic")
-	subscription_name := fmt.Sprintf("%s-%s", eventSource.Name, eventSource.Id)
+	subscription_name := fmt.Sprintf("%s-%s-%s", eventSource.Name, eventSource.Id, ksuid.New().String())
+	logger.Info("subscribing to GCP PubSub topic with subscription: " + subscription_name)
 	subscription := client.Subscription(subscription_name)
 	exists, err = subscription.Exists(ctx)
 
