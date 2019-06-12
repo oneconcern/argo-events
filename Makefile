@@ -1,4 +1,39 @@
-PACKAGE=github.com/argoproj/argo-events
+SHELL:=/bin/bash
+
+# COLORS
+GREEN  := $(shell tput -Txterm setaf 2)
+YELLOW := $(shell tput -Txterm setaf 3)
+WHITE  := $(shell tput -Txterm setaf 7)
+RESET  := $(shell tput -Txterm sgr0)
+
+GO := $(shell command -v richgo 2> /dev/null)
+ifndef GO
+		GO := "go"
+endif
+
+TARGET_MAX_CHAR_NUM=25
+## Show help
+help:
+	@echo ''
+	@echo 'Usage:'
+	@echo '  ${YELLOW}make${RESET} ${GREEN}<target>${RESET}'
+	@echo ''
+	@echo 'Targets:'
+	@awk '/^[a-zA-Z\-\_0-9]+:/ { \
+		helpMessage = match(lastLine, /^## (.*)/); \
+		if (helpMessage) { \
+			helpCommand = substr($$1, 0, index($$1, ":")-1); \
+			helpMessage = substr(lastLine, RSTART + 3, RLENGTH); \
+			printf "  ${YELLOW}%-$(TARGET_MAX_CHAR_NUM)s${RESET} ${GREEN}%s${RESET}\n", helpCommand, helpMessage; \
+		} \
+	} \
+	{ lastLine = $$0 }' $(MAKEFILE_LIST)
+
+TAG_VERSION=$(shell git describe --tags)
+GIT_BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
+# ----------------------
+
+PACKAGE=github.com/oneconcern/argo-events
 CURRENT_DIR=$(shell pwd)
 DIST_DIR=${CURRENT_DIR}/dist
 
@@ -16,8 +51,8 @@ override LDFLAGS += \
 
 #  docker image publishing options
 DOCKER_PUSH?=true
-IMAGE_NAMESPACE?=argoproj
-IMAGE_TAG?=v0.11
+IMAGE_NAMESPACE?=gcr.io/onec-co
+IMAGE_TAG?=latest
 
 ifeq (${DOCKER_PUSH},true)
 ifndef IMAGE_NAMESPACE
@@ -32,6 +67,23 @@ endif
 ifdef IMAGE_NAMESPACE
 IMAGE_PREFIX=${IMAGE_NAMESPACE}/
 endif
+
+.PHONY: build-pubsub-onec
+## Build gcp-pubsub-gateway image
+build-pubsub-onec:
+	@echo '${GREEN}building${RESET} ${YELLOW}gcp-pubsub-gateway${RESET} image'
+	@docker build \
+		--pull \
+		-t $(IMAGE_PREFIX)gcp-pubsub-gateway:$(TAG_VERSION) \
+		-t $(IMAGE_PREFIX)gcp-pubsub-gateway:$(subst /,_,$(GIT_BRANCH)) \
+		-f ./gateways/community/gcp-pubsub/Dockerfile .
+
+.PHONY: push-pubsub-onec
+## Push pubsub-image-onec image
+push-pubsub-onec:
+	@echo '${GREEN}pushing${RESET} ${YELLOW}gcp-pubsub-gateway${RESET} image'
+	@docker push $(IMAGE_PREFIX)gcp-pubsub-gateway:$(TAG_VERSION)
+	@docker push $(IMAGE_PREFIX)gcp-pubsub-gateway:$(subst /,_,$(GIT_BRANCH))
 
 # Build the project images
 .DELETE_ON_ERROR:

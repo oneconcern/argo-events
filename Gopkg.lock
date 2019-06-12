@@ -97,6 +97,16 @@
   revision = "ab596ec53119dade64e6f3cf60dab4b45e613890"
 
 [[projects]]
+  name = "github.com/knq/baseconv"
+  packages = ["."]
+  revision = "5ac6a1b7584c87afde1a974bdc313149489ec173"
+
+[[projects]]
+  name = "github.com/bramvdbogaerde/go-randomstring"
+  packages = ["."]
+  revision = "9e00e68359cada926c70670f7162211bdc6cdc09"
+
+[[projects]]
   name = "github.com/colinmarc/hdfs"
   packages = [
     ".",
@@ -576,6 +586,12 @@
   packages = ["."]
   revision = "b41be1df696709bb6395fe435af20370037c0b4c"
   version = "v1.2.0"
+
+[[projects]]
+  name = "github.com/segmentio/ksuid"
+  packages = ["."]
+  revision = "ffd9a8aaaf8f40792e055371eba06542348e991e"
+  version = "v1.0.2"
 
 [[projects]]
   name = "github.com/sergi/go-diff"
