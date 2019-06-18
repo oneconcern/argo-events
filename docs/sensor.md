@@ -1,5 +1,5 @@
 # Sensor
-Sensors define a set of event dependencies (inputs) and triggers (outputs). 
+Sensors define a set of event dependencies (inputs) and triggers (outputs).
 <br/>
 
 <p align="center">
@@ -25,18 +25,18 @@ Refer to [Triggers](trigger.md).
   1. Once a Sensor receives an event from a Gateway, either over HTTP or through NATS, it validates
   the event against dependencies defined in the Sensor spec. If the Sensor expects the event then the
   event is marked as valid and the dependency is marked as resolved.
-    
+
   2. If you haven't defined dependency groups, a Sensor waits for all dependencies to resolve and then
   kicks off each of its triggers in sequence. If filters are defined, the Sensor applies the filters to the
   incoming event. If the event passes the filters the Sensor's triggers are fired.
-  
+
   3. If you have defined dependency groups, a Sensor evaluates the group that the incoming event belongs to
   and marks the group as resolved if all other event dependencies in the group have already been resolved.
-  
+
   4. Whenever a dependency group is resolved, the Sensor evaluates the `circuit` defined in spec. If
   the `circuit` resolves to true, the triggers are fired. Sensors always wait for a `circuit` to resolve
   to true before firing triggers.
-  
+
   5. You may not want to fire all of the triggers defined in your Sensor spec. The `when` switch can be
   used to control when a certain trigger should be fired depending on which dependency group has been
   resolved.
@@ -110,16 +110,16 @@ Lets look at a basic example,
 i. The `spec.template.spec` defines the template for the sensor pod.
 
 ii. The `dependencies` define list of events the sensor is expected to receive, meaning this is an AND operation.
- 
-iii. `eventProtocol` express the mode of communication to receive events
-from gateways. 
 
-iv. `triggers` define list of templates, each containing specification for a K8s resource and optional parameters. 
+iii. `eventProtocol` express the mode of communication to receive events
+from gateways.
+
+iv. `triggers` define list of templates, each containing specification for a K8s resource and optional parameters.
 
 ## Circuit
 
 Now, lets look at a more complex example involving a circuit,
-    
+
     apiVersion: argoproj.io/v1alpha1
     kind: Sensor
     metadata:
@@ -269,19 +269,19 @@ Now, lets look at a more complex example involving a circuit,
                           - cowsay
                         image: "docker/whalesay:latest"
 
-The sensor defines the list of dependencies with few containing filters. The filters are explained next. These dependencies are then grouped using `dependenciesGroups`. 
+The sensor defines the list of dependencies with few containing filters. The filters are explained next. These dependencies are then grouped using `dependenciesGroups`.
 
 The significance of `dependenciesGroups` is, if you don't define it, the sensor will apply an `AND` operation and wait for all events to occur. But you may not always want to wait for all the specified events to occur,
 but rather trigger the workflows as soon as a group or groups of event dependencies are satisfied.
 
 To define the logic of when to trigger the workflows, `circuit` contains a boolean expression that is evaluated every time a event dependency
-is satisfied. Template can optionally contain `when` switch that determines when to trigger this template. 
+is satisfied. Template can optionally contain `when` switch that determines when to trigger this template.
 
 In the example, the first template will get triggered when either `group_1` or `group_2` dependencies groups are satisfied, the second template will get triggered only when both
-`group_4` and `group_5` are triggered and the last template will be triggered every time the circuit evaluates to true.  
+`group_4` and `group_5` are triggered and the last template will be triggered every time the circuit evaluates to true.
 
 ## Execution and Backoff Policy
-    
+
     apiVersion: argoproj.io/v1alpha1
     kind: Sensor
     metadata:
@@ -328,7 +328,7 @@ In the example, the first template will get triggered when either `group_1` or `
               # labels set on the resource decide if resource is in success or failed state.
               state:
                 # Note: Set either success or failure labels. If you set both, only success labels will be considered.
-    
+
                 # Success defines labels required to identify a resource in success state
                 success:
                   workflows.argoproj.io/phase: Succeeded
@@ -396,17 +396,17 @@ In the example, the first template will get triggered when either `group_1` or `
                       image: docker/whalesay:latest
                       command: [cowsay]
                       args: ["hello world"]
-    
+
 A trigger template can contain execution and backoff policy. Once the trigger is executed by template, it's
 state is determined using `state` labels. If labels defined in `success` criteria matches the subset of labels defined on the
 resource, the execution is treated as successful and vice-versa for labels defined in `failure` criteria. Please note that you can
-only define either success or failure criteria. 
+only define either success or failure criteria.
 
 The `backoff` directs the sensor on when to check the labels of the executed trigger resource. If after the backoff retries, the sensor is not able to determine the
 state of the resource, `errorOnBackoffTimeout` controls whether to mark trigger as failure.
 
 The `errorOnFailedRound` defined outside of triggers decides whether to set the sensor state to `error` if the previous
-round of triggers execution fails. 
+round of triggers execution fails.
 
 ## Filters
 You can apply following filters on an event dependency. If the event payload passes the filter, then only it will
@@ -430,7 +430,7 @@ be treated as a valid event.
 [Example](https://github.com/argoproj/argo-events/blob/master/examples/sensors/time-filter-webhook.yaml)
 
 ### EventContext Filter
- 
+
     filters:
             context:
                 source:
@@ -446,7 +446,7 @@ be treated as a valid event.
                 - path: bucket
                   type: string
                   value: argo-workflow-input
-    
+
 [Example](https://github.com/argoproj/argo-events/blob/master/examples/sensors/data-filter-webhook.yaml)
 
 ## Examples
