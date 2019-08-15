@@ -1,5 +1,4 @@
 # This configmap contains the event sources configurations for Resource gateway
-
 ---
 apiVersion: v1
 kind: ConfigMap
