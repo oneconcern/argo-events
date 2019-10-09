@@ -3,7 +3,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/argoproj/argo-events)](https://goreportcard.com/report/github.com/argoproj/argo-events)
 [![slack](https://img.shields.io/badge/slack-argoproj-brightgreen.svg?logo=slack)](https://argoproj.github.io/community/join-slack)
 [![Build Status](https://travis-ci.org/argoproj/argo-events.svg?branch=master)](https://travis-ci.org/argoproj/argo-events)
-[![GoDoc](https://godoc.org/github.com/argoproj/argo-events?status.svg)](https://godoc.org/github.com/argoproj/argo-events/pkg/apis)	
+[![GoDoc](https://godoc.org/github.com/argoproj/argo-events?status.svg)](https://godoc.org/github.com/argoproj/argo-events/pkg/apis)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
 ## What is Argo Events?
@@ -19,7 +19,7 @@ and trigger Kubernetes objects after successful event dependencies resolution.
 
 <br/>
 
-## Features 
+## Features
 * Manage dependencies from a variety of event sources.
 * Ability to customize business-level constraint logic for event dependencies resolution.
 * Manage everything from simple, linear, real-time dependencies to complex, multi-source, batch job dependencies.
