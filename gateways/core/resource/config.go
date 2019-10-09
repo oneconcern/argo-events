@@ -40,6 +40,21 @@ type InformerEvent struct {
 	Type   EventType
 }
 
+type EventType string
+
+const (
+	ADD    EventType = "ADD"
+	UPDATE EventType = "UPDATE"
+	DELETE EventType = "DELETE"
+)
+
+// InformerEvent holds event generated from resource state change
+type InformerEvent struct {
+	Obj    interface{}
+	OldObj interface{}
+	Type   EventType
+}
+
 // ResourceEventSourceExecutor implements Eventing
 type ResourceEventSourceExecutor struct {
 	Log *logrus.Logger
