@@ -19,6 +19,7 @@ package sensors
 import (
 	"encoding/json"
 	"fmt"
+
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
