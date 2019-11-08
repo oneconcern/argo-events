@@ -386,6 +386,12 @@
   version = "v1.4.1"
 
 [[projects]]
+  name = "github.com/hashicorp/go-uuid"
+  packages = ["."]
+  revision = "4f571afc59f3043a65f8fe6bf46d887b10a01d43"
+  version = "v1.0.1"
+
+[[projects]]
   name = "github.com/hashicorp/golang-lru"
   packages = [
     ".",
