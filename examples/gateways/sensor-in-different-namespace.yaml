@@ -18,28 +18,19 @@ spec:
       port: "9300"
   template:
     metadata:
-      name: "webhook-gateway"
+      name: "webhook-gateway-http"
       labels:
         gateway-name: "webhook-gateway"
     spec:
       containers:
         - name: "gateway-client"
-          image: "argoproj/gateway-client:v0.11"
+          image: "argoproj/gateway-client"
           imagePullPolicy: "Always"
           command: ["/bin/gateway-client"]
         - name: "webhook-events"
-          image: "argoproj/webhook-gateway:v0.11"
+          image: "argoproj/webhook-gateway"
           imagePullPolicy: "Always"
           command: ["/bin/webhook-gateway"]
-      # To make webhook secure, mount the secret that contains certificate and private key in the container
-      # and refer that mountPath in the event source.
-      #          volumeMounts:
-      #            - mountPath: "/bin/webhook-secure"
-      #              name: secure
-      #      volumes:
-      #        - name: secure
-      #          secret:
-      #            secretName: webhook-secure
       serviceAccountName: "argo-events-sa"
   service:
     metadata:
@@ -50,7 +41,8 @@ spec:
       ports:
         - port: 12000
           targetPort: 12000
-      type: ClusterIP
+      type: LoadBalancer
   watchers:
     sensors:
       - name: "webhook-sensor"
+        namespace: "another-namespace"

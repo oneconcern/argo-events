@@ -6,7 +6,7 @@ metadata:
     sensors.argoproj.io/sensor-controller-instanceid: argo-events
     # sensor controller will use this label to match with it's own version
     # do not remove
-    argo-events-sensor-version: v0.10
+    argo-events-sensor-version: v0.11
 spec:
   template:
     spec:
@@ -49,7 +49,7 @@ spec:
         name: workflow-trigger-1
         group: argoproj.io
         version: v1alpha1
-        kind: Workflow
+        resource: workflows
         source:
           git:
             url: "https://github.com/argoproj/argo.git"
@@ -68,7 +68,7 @@ spec:
         name: workflow-trigger-2
         group: argoproj.io
         version: v1alpha1
-        kind: Workflow
+        resource: workflows
         source:
           git:
             url: "git@github.com:argoproj/argo.git"

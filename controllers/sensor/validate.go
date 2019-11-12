@@ -117,7 +117,7 @@ func validateTriggerTemplate(template *v1alpha1.TriggerTemplate) error {
 	if template.Source == nil {
 		return fmt.Errorf("trigger '%s' does not contain an absolute action", template.Name)
 	}
-	if template.GroupVersionKind == nil {
+	if template.GroupVersionResource == nil {
 		return fmt.Errorf("must provide group, version and kind for the resource")
 	}
 	if template.When != nil && template.When.All != nil && template.When.Any != nil {
@@ -156,6 +156,16 @@ func validateTriggerParameter(parameter *v1alpha1.TriggerParameter) error {
 	if parameter.Dest == "" {
 		return fmt.Errorf("parameter destination can't be empty")
 	}
+
+	switch op := parameter.Operation; op {
+	case v1alpha1.TriggerParameterOpAppend:
+	case v1alpha1.TriggerParameterOpOverwrite:
+	case v1alpha1.TriggerParameterOpPrepend:
+	case v1alpha1.TriggerParameterOpNone:
+	default:
+		return fmt.Errorf("parameter operation %+v is invalid", op)
+	}
+
 	return nil
 }
 
