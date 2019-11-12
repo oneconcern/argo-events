@@ -19,10 +19,8 @@ package pubsub
 import (
 	"context"
 	"encoding/base64"
-	"errors"
-
-	"github.com/segmentio/ksuid"
 	"google.golang.org/api/option"
+	"fmt"
 
 	"cloud.google.com/go/pubsub"
 	"github.com/argoproj/argo-events/common"
@@ -55,7 +53,7 @@ func (ese *GcpPubSubEventSourceExecutor) StartEventSource(eventSource *gateways.
 }
 
 func (ese *GcpPubSubEventSourceExecutor) listenEvents(ctx context.Context, sc *pubSubEventSource, eventSource *gateways.EventSource, dataCh chan []byte, errorCh chan error, doneCh chan struct{}) {
-	// Create a new topic with the given name.
+	// Create a new topic with the given name if none exists
 	logger := ese.Log.WithField(common.LabelEventSource, eventSource.Name).WithField("topic", sc.Topic)
 
 	client, err := pubsub.NewClient(ctx, sc.ProjectID, option.WithCredentialsFile(sc.CredentialsFile))
@@ -64,30 +62,49 @@ func (ese *GcpPubSubEventSourceExecutor) listenEvents(ctx context.Context, sc *p
 		return
 	}
 
-	//check if a topic exists
-	topic := client.Topic(sc.Topic)
-	ok, err := topic.Exists(ctx)
+	topicClient := client // use same client for topic and subscription by default
+	if sc.TopicProjectID != "" && sc.TopicProjectID != sc.ProjectID {
+		topicClient, err = pubsub.NewClient(ctx, sc.TopicProjectID, option.WithCredentialsFile(sc.CredentialsFile))
+		if err != nil {
+			errorCh <- err
+			return
+		}
+	}
+
+	topic := topicClient.Topic(sc.Topic)
+	exists, err := topic.Exists(ctx)
 	if err != nil {
 		errorCh <- err
 		return
 	}
-	if !ok {
-		err := errors.New("topic does not exist: " + sc.Topic)
-		errorCh <- err
-		return
+	if !exists {
+		logger.Info("Creating GCP PubSub topic")
+		if _, err := topicClient.CreateTopic(ctx, sc.Topic); err != nil {
+			errorCh <- err
+			return
+		}
 	}
 
-	//add random name for subscription to not clash with possible existing one.
-	subName := sc.Topic + "-" + ksuid.New().String()
-	logger.Info("subscribing to GCP PubSub topic with subscription: " + subName)
-	sub, err := client.CreateSubscription(ctx, subName,
-		pubsub.SubscriptionConfig{Topic: topic})
+	logger.Info("Subscribing to GCP PubSub topic")
+	subscription_name := fmt.Sprintf("%s-%s", eventSource.Name, eventSource.Id)
+	subscription := client.Subscription(subscription_name)
+	exists, err = subscription.Exists(ctx)
+
 	if err != nil {
 		errorCh <- err
 		return
 	}
+	if exists {
+		logger.Warn("Using an existing subscription")
+	} else {
+		logger.Info("Creating subscription")
+		if _, err := client.CreateSubscription(ctx, subscription_name, pubsub.SubscriptionConfig{Topic: topic}); err != nil {
+			errorCh <- err
+			return
+		}
+	}
 
-	err = sub.Receive(ctx, func(msgCtx context.Context, m *pubsub.Message) {
+	err = subscription.Receive(ctx, func(msgCtx context.Context, m *pubsub.Message) {
 		logger.Info("received GCP PubSub Message from topic")
 		encodedData := []byte(base64.StdEncoding.EncodeToString(m.Data))
 		dataCh <- encodedData
@@ -102,9 +119,10 @@ func (ese *GcpPubSubEventSourceExecutor) listenEvents(ctx context.Context, sc *p
 
 	// after this point, panic on errors
 	logger.Info("deleting GCP PubSub subscription")
-	if err = sub.Delete(context.Background()); err != nil {
+	if err = subscription.Delete(context.Background()); err != nil {
 		panic(err)
 	}
+
 	logger.Info("closing GCP PubSub client")
 	if err = client.Close(); err != nil {
 		panic(err)

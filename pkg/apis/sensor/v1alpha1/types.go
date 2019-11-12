@@ -28,7 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const ArgoEventsSensorVersion = "v0.10"
+const ArgoEventsSensorVersion = "v0.11"
 
 // NotificationType represent a type of notifications that are handled by a sensor
 type NotificationType string
@@ -89,14 +89,17 @@ type Sensor struct {
 type SensorList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata" protobuf:"bytes,1,opt,name=metadata"`
-	Items           []Sensor `json:"items" protobuf:"bytes,2,rep,name=items"`
+	// +listType=items
+	Items []Sensor `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
 
 // SensorSpec represents desired sensor state
 type SensorSpec struct {
+	// +listType=dependencies
 	// Dependencies is a list of the events that this sensor is dependent on.
 	Dependencies []EventDependency `json:"dependencies" protobuf:"bytes,1,rep,name=dependencies"`
 
+	// +listType=triggers
 	// Triggers is a list of the things that this sensor evokes. These are the outputs from this sensor.
 	Triggers []Trigger `json:"triggers" protobuf:"bytes,2,rep,name=triggers"`
 
@@ -109,6 +112,7 @@ type SensorSpec struct {
 	// Circuit is a boolean expression of dependency groups
 	Circuit string `json:"circuit,omitempty" protobuf:"bytes,5,rep,name=circuit"`
 
+	// +listType=dependencyGroups
 	// DependencyGroups is a list of the groups of events.
 	DependencyGroups []DependencyGroup `json:"dependencyGroups,omitempty" protobuf:"bytes,6,rep,name=dependencyGroups"`
 
@@ -133,6 +137,7 @@ type EventDependency struct {
 type DependencyGroup struct {
 	// Name of the group
 	Name string `json:"name" protobuf:"bytes,1,name=name"`
+	// +listType=dependencies
 	// Dependencies of events
 	Dependencies []string `json:"dependencies" protobuf:"bytes,2,name=dependencies"`
 }
@@ -148,6 +153,7 @@ type EventDependencyFilter struct {
 	// Context filter constraints with escalation
 	Context *common.EventContext `json:"context,omitempty" protobuf:"bytes,3,opt,name=context"`
 
+	// +listType=data
 	// Data filter constraints with escalation
 	Data []DataFilter `json:"data,omitempty" protobuf:"bytes,4,opt,name=data"`
 }
@@ -191,10 +197,11 @@ type DataFilter struct {
 	// Type contains the JSON type of the data
 	Type JSONType `json:"type" protobuf:"bytes,2,opt,name=type"`
 
+	// +listType=value
 	// Value is the allowed string values for this key
 	// Booleans are passed using strconv.ParseBool()
 	// Numbers are parsed using as float64 using strconv.ParseFloat()
-	// Strings are taken as is
+	// Strings are treated as regular expressions
 	// Nils this value is ignored
 	Value []string `json:"value" protobuf:"bytes,3,rep,name=value"`
 }
@@ -204,9 +211,11 @@ type Trigger struct {
 	// Template describes the trigger specification.
 	Template *TriggerTemplate `json:"template" protobuf:"bytes,1,name=template"`
 
+	// +listType=templateParameters
 	// TemplateParameters is the list of resource parameters to pass to the template object
 	TemplateParameters []TriggerParameter `json:"templateParameters,omitempty" protobuf:"bytes,2,rep,name=templateParameters"`
 
+	// +listType=resourceParameters
 	// ResourceParameters is the list of resource parameters to pass to resolved resource object in template object
 	ResourceParameters []TriggerParameter `json:"resourceParameters,omitempty" protobuf:"bytes,3,rep,name=resourceParameters"`
 
@@ -223,7 +232,7 @@ type TriggerTemplate struct {
 	When *TriggerCondition `json:"when,omitempty" protobuf:"bytes,2,opt,name=when"`
 
 	// The unambiguous kind of this object - used in order to retrieve the appropriate kubernetes api client for this resource
-	*metav1.GroupVersionKind `json:",inline" protobuf:"bytes,3,opt,name=groupVersionKind"`
+	*metav1.GroupVersionResource `json:",inline" protobuf:"bytes,3,opt,name=groupVersionResource"`
 
 	// Source of the K8 resource file(s)
 	Source *ArtifactLocation `json:"source" protobuf:"bytes,4,opt,name=source"`
@@ -232,12 +241,29 @@ type TriggerTemplate struct {
 // TriggerCondition describes condition which must be satisfied in order to execute a trigger.
 // Depending upon condition type, status of dependency groups is used to evaluate the result.
 type TriggerCondition struct {
+	// +listType=any
 	// Any acts as a OR operator between dependencies
 	Any []string `json:"any,omitempty" protobuf:"bytes,1,rep,name=any"`
 
+	// +listType=all
 	// All acts as a AND operator between dependencies
 	All []string `json:"all,omitempty" protobuf:"bytes,2,rep,name=all"`
 }
+
+// TriggerParameterOperation represents how to set a trigger destination
+// resource key
+type TriggerParameterOperation string
+
+const (
+	// TriggerParameterOpNone is the zero value of TriggerParameterOperation
+	TriggerParameterOpNone TriggerParameterOperation = ""
+	// TriggerParameterOpAppend means append the new value to the existing
+	TriggerParameterOpAppend TriggerParameterOperation = "append"
+	// TriggerParameterOpOverwrite means overwrite the existing value with the new
+	TriggerParameterOpOverwrite TriggerParameterOperation = "overwrite"
+	// TriggerParameterOpPrepend means prepend the new value to the existing
+	TriggerParameterOpPrepend TriggerParameterOperation = "prepend"
+)
 
 // TriggerParameter indicates a passed parameter to a service template
 type TriggerParameter struct {
@@ -249,6 +275,10 @@ type TriggerParameter struct {
 	// The -1 key can be used to append a value to an existing array.
 	// See https://github.com/tidwall/sjson#path-syntax for more information about how this is used.
 	Dest string `json:"dest" protobuf:"bytes,2,name=dest"`
+
+	// Operation is what to do with the existing value at Dest, whether to
+	// 'prepend', 'overwrite', or 'append' it.
+	Operation TriggerParameterOperation `json:"operation,omitempty" protobuf:"bytes,3,opt,name=operation"`
 }
 
 // TriggerParameterSource defines the source for a parameter from a event event
@@ -447,10 +477,15 @@ type GitArtifact struct {
 	// +optional
 	Tag string `json:"tag,omitempty" protobuf:"bytes,8,opt,name=tag"`
 
+	// Ref to use to pull trigger resource. Will result in a shallow clone and
+	// fetch.
+	// +optional
+	Ref string `json:"ref,omitempty" protobuf:"bytes,9,opt,name=ref"`
+
 	// Remote to manage set of tracked repositories. Defaults to "origin".
 	// Refer https://git-scm.com/docs/git-remote
 	// +optional
-	Remote *GitRemoteConfig `json:"remote" protobuf:"bytes,9,opt,name=remote"`
+	Remote *GitRemoteConfig `json:"remote" protobuf:"bytes,10,opt,name=remote"`
 }
 
 // GitRemoteConfig contains the configuration of a Git remote
@@ -458,6 +493,7 @@ type GitRemoteConfig struct {
 	// Name of the remote to fetch from.
 	Name string `json:"name" protobuf:"bytes,1,name=name"`
 
+	// +listType=urls
 	// URLs the URLs of a remote repository. It must be non-empty. Fetch will
 	// always use the first URL, while push will use all of them.
 	URLS []string `json:"urls" protobuf:"bytes,2,rep,name=urls"`

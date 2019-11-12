@@ -24,7 +24,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-const ArgoEventsEventSourceVersion = "v0.10"
+const ArgoEventsEventSourceVersion = "v0.11"
 
 // SlackEventSourceExecutor implements Eventing
 type SlackEventSourceExecutor struct {
@@ -36,14 +36,17 @@ type SlackEventSourceExecutor struct {
 }
 
 type RouteConfig struct {
-	route     *gwcommon.Route
-	ses       *slackEventSource
-	token     string
-	clientset kubernetes.Interface
-	namespace string
+	route         *gwcommon.Route
+	ses           *slackEventSource
+	token         string
+	signingSecret string
+	clientset     kubernetes.Interface
+	namespace     string
 }
 
 type slackEventSource struct {
+	// Slack App signing secret
+	SigningSecret *corev1.SecretKeySelector `json:"signingSecret,omitempty"`
 	// Token for URL verification handshake
 	Token *corev1.SecretKeySelector `json:"token"`
 	// Webhook

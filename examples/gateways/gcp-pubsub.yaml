@@ -7,7 +7,7 @@ metadata:
     gateways.argoproj.io/gateway-controller-instanceid: argo-events
     # gateway controller will use this label to match with it's own version
     # do not remove
-    argo-events-gateway-version: v0.10
+    argo-events-gateway-version: v0.11
 spec:
   type: "gcp-pubsub"
   eventSource: "gcp-pubsub-event-source"
@@ -27,7 +27,7 @@ spec:
           image: "argoproj/gateway-client"
           imagePullPolicy: "Always"
           command: ["/bin/gateway-client"]
-        - name: "aws-sqs-events"
+        - name: "gcp-pubsub-events"
           image: "argoproj/gcp-pubsub-gateway"
           imagePullPolicy: "Always"
           command: ["/bin/gcp-pubsub-gateway"]

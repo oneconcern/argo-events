@@ -17,13 +17,14 @@ limitations under the License.
 package calendar
 
 import (
+	"encoding/json"
 	"github.com/sirupsen/logrus"
 	"time"
 
 	"github.com/ghodss/yaml"
 )
 
-const ArgoEventsEventSourceVersion = "v0.10"
+const ArgoEventsEventSourceVersion = "v0.11"
 
 // CalendarEventSourceExecutor implements Eventing
 type CalendarEventSourceExecutor struct {
@@ -54,7 +55,7 @@ type calSchedule struct {
 
 	// UserPayload will be sent to sensor as extra data once the event is triggered
 	// +optional
-	UserPayload string `json:"userPayload,omitempty"`
+	UserPayload *json.RawMessage `json:"userPayload,omitempty"`
 }
 
 // calResponse is the event payload that is sent as response to sensor
@@ -63,7 +64,7 @@ type calResponse struct {
 	EventTime time.Time `json:"eventTime"`
 
 	// UserPayload if any
-	UserPayload string `json:"userPayload"`
+	UserPayload *json.RawMessage `json:"userPayload"`
 }
 
 func parseEventSource(eventSource string) (interface{}, error) {

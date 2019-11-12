@@ -4,14 +4,16 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: gcp-pubsub-configmap
+  name: gcp-pubsub-event-source
   labels:
     # do not remove
-    argo-events-event-source-version: v0.10
+    argo-events-event-source-version: v0.11
 data:
   example-1: |-
     # id of your project
-    projectId: "my-fake-project-id"
+    projectID: "my-fake-project-id"
+    # (optional) id of project for topic, same as projectID by default
+    # topicProjectID: "my-fake-topic-project-id"
     # topic name
     topic: "my-fake-topic"
     # Refers to the credential file that is mounted in the gateway pod.

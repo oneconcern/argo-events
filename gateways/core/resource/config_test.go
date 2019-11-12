@@ -25,19 +25,25 @@ var es = `
 namespace: "argo-events"
 group: ""
 version: "v1"
-kind: "Pod"
+resource: "pods"
 filter:
     labels:
-    workflows.argoproj.io/phase: Succeeded
-    name: "my-workflow"
+     workflows.argoproj.io/phase: Succeeded
+     name: "my-workflow"
 `
 
 func TestParseConfig(t *testing.T) {
 	convey.Convey("Given a resource event source, parse it", t, func() {
 		ps, err := parseEventSource(es)
+
 		convey.So(err, convey.ShouldBeNil)
 		convey.So(ps, convey.ShouldNotBeNil)
-		_, ok := ps.(*resource)
+
+		resource, ok := ps.(*resource)
 		convey.So(ok, convey.ShouldEqual, true)
+
+		convey.So(resource.Group, convey.ShouldEqual, "")
+		convey.So(resource.Version, convey.ShouldEqual, "v1")
+		convey.So(resource.Resource, convey.ShouldEqual, "pods")
 	})
 }

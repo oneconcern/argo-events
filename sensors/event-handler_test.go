@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"k8s.io/apimachinery/pkg/runtime"
 	"net/http"
 	"strings"
 	"testing"
@@ -36,7 +37,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
-	discoveryFake "k8s.io/client-go/discovery/fake"
+	dynamicFake "k8s.io/client-go/dynamic/fake"
 	"k8s.io/client-go/kubernetes/fake"
 )
 
@@ -65,7 +66,7 @@ spec:
         name: test-workflow-trigger
         group: argoproj.io
         version: v1alpha1
-        kind: Workflow
+        resource: workflows
         source:
           inline: |
             apiVersion: argoproj.io/v1alpha1
@@ -117,15 +118,10 @@ func (m *mockHttpWriter) WriteHeader(statusCode int) {
 
 func getsensorExecutionCtx(sensor *v1alpha1.Sensor) *sensorExecutionCtx {
 	kubeClientset := fake.NewSimpleClientset()
-	fakeDiscoveryClient := kubeClientset.Discovery().(*discoveryFake.FakeDiscovery)
-	clientPool := &FakeClientPool{
-		Fake: kubeClientset.Fake,
-	}
-	fakeDiscoveryClient.Resources = append(fakeDiscoveryClient.Resources, &podResourceList)
+	fakeDynamicClient := dynamicFake.NewSimpleDynamicClient(&runtime.Scheme{})
 	return &sensorExecutionCtx{
 		kubeClient:           kubeClientset,
-		discoveryClient:      fakeDiscoveryClient,
-		clientPool:           clientPool,
+		dynamicClient:        fakeDynamicClient,
 		log:                  common.NewArgoEventsLogger(),
 		sensorClient:         sensorFake.NewSimpleClientset(),
 		sensor:               sensor,
@@ -151,6 +147,46 @@ func getCloudEvent() *apicommon.Event {
 			"x": "abc"
 		}`),
 	}
+}
+
+func TestDependencyGlobMatch(t *testing.T) {
+	sensor, err := getSensor()
+	convey.Convey("Given a sensor spec, create a sensor", t, func() {
+		globDepName := "test-gateway:*"
+		convey.So(err, convey.ShouldBeNil)
+		convey.So(sensor, convey.ShouldNotBeNil)
+		sensor.Spec.Dependencies[0].Name = globDepName
+		sec := getsensorExecutionCtx(sensor)
+
+		sec.sensor, err = sec.sensorClient.ArgoprojV1alpha1().Sensors(sensor.Namespace).Create(sensor)
+		convey.So(err, convey.ShouldBeNil)
+
+		sec.sensor.Status.Nodes = make(map[string]v1alpha1.NodeStatus)
+		fmt.Println(sensor.NodeID(globDepName))
+
+		sensor2.InitializeNode(sec.sensor, globDepName, v1alpha1.NodeTypeEventDependency, sec.log, "node is init")
+		sensor2.MarkNodePhase(sec.sensor, globDepName, v1alpha1.NodeTypeEventDependency, v1alpha1.NodePhaseActive, nil, sec.log, "node is active")
+
+		sensor2.InitializeNode(sec.sensor, "test-workflow-trigger", v1alpha1.NodeTypeTrigger, sec.log, "trigger is init")
+
+		e := &apicommon.Event{
+			Payload: []byte("hello"),
+			Context: apicommon.EventContext{
+				Source: &apicommon.URI{
+					Host: "test-gateway:test",
+				},
+			},
+		}
+		dataCh := make(chan *updateNotification)
+		go func() {
+			data := <-sec.queue
+			dataCh <- data
+		}()
+		ok := sec.sendEventToInternalQueue(e, &mockHttpWriter{})
+		convey.So(ok, convey.ShouldEqual, true)
+		ew := <-dataCh
+		sec.processUpdateNotification(ew)
+	})
 }
 
 func TestEventHandler(t *testing.T) {
