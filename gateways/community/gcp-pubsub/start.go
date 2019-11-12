@@ -20,10 +20,8 @@ import (
 	"context"
 	"fmt"
 	"encoding/base64"
-	"errors"
-
-	"github.com/segmentio/ksuid"
 	"google.golang.org/api/option"
+	"fmt"
 
 	"cloud.google.com/go/pubsub"
 	"github.com/argoproj/argo-events/common"
